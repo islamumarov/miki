@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Keep
 
-## Getting Started
+Google Keep–style notes and checklists. TypeScript end to end: Next.js (App Router) for UI and API, SQLite via Node's built-in `node:sqlite`.
 
-First, run the development server:
+Requires Node ≥ 22.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
+npm test         # DB layer tests
+npm run build && npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Theme follows the OS setting; the 🌗 button in the header overrides it (saved in localStorage).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Database file: `data/notes.db` (created on first request; override with `NOTES_DB=/path/to.db`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Android app
 
-## Learn More
+Capacitor wraps a static export; notes are stored on the device (`localStorage`), no server needed.
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run build:android   # static export → out/, synced into android/
+npx cap open android    # then Build ▸ Build APK in Android Studio
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+CI: `.github/workflows/android.yml` builds a debug APK on every push to `main` (Actions ▸ artifact `keep-debug-apk`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Layout
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `lib/types.ts` — Note/Item types and color palette (shared client/server). Labels are a JSON string array on the note; the header filter bar is derived from the loaded notes.
+- `lib/local.ts` — on-device storage used by the Android build (+ `local.test.ts`)
+- `lib/db.ts` — SQLite schema, queries, input validation (+ `db.test.ts`)
+- `app/api/notes` — REST routes: `GET/POST /api/notes`, `PATCH/DELETE /api/notes/:id`
+- `components/` — `KeepApp` (state, search, archive), `Composer`, `NoteCard`, `Checklist`, `NoteEditor` (shared editing widgets)
