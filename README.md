@@ -24,7 +24,7 @@ npm run build:android   # static export → out/, synced into android/
 npx cap open android    # then Build ▸ Build APK in Android Studio
 ```
 
-CI: `.github/workflows/android.yml` builds a debug APK on every push to `main` (Actions ▸ artifact `keep-debug-apk`). Tag `v*` to publish it to GitHub Releases:
+CI: `.github/workflows/android.yml` builds a debug APK on every tag (Actions ▸ artifact `keep-debug-apk`). Tag `v*` to publish it to GitHub Releases:
 
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
