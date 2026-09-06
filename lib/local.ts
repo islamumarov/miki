@@ -11,7 +11,11 @@ const save = (ns: Note[]) => localStorage.setItem(KEY, JSON.stringify(ns));
 
 // Mirrors parseNoteInput's label cleanup in db.ts.
 const normalize = (i: NoteInput): NoteInput =>
-  i.labels ? { ...i, labels: [...new Set(i.labels.map((l) => l.trim()).filter(Boolean))] } : i;
+  ({
+    ...i,
+    ...(i.labels && { labels: [...new Set(i.labels.map((l) => l.trim()).filter(Boolean))] }),
+    ...(i.reminder && { reminder: new Date(i.reminder).toISOString() }),
+  });
 
 // Mirrors the LIKE search in listNotes: case-insensitive substring over title, content, items, labels.
 const matches = (n: Note, q: string) =>
@@ -27,7 +31,7 @@ export const local = {
     const ns = load();
     const now = new Date().toISOString();
     const n: Note = {
-      title: "", content: "", items: [], labels: [], color: "default", pinned: false, archived: false,
+      title: "", content: "", items: [], labels: [], reminder: null, color: "default", pinned: false, archived: false,
       ...normalize(input),
       id: Math.max(0, ...ns.map((x) => x.id)) + 1,
       created_at: now,

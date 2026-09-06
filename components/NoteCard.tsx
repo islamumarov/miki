@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { COLORS, type Note, type NoteInput } from "@/lib/types";
 import Checklist from "./Checklist";
-import { ColorPicker, DraftFields, ListToggle, PinButton, chip, isBlank, toInput, type Draft } from "./NoteEditor";
+import { ColorPicker, DraftFields, ListToggle, PinButton, chip, fmtReminder, isBlank, isOverdue, toInput, type Draft } from "./NoteEditor";
 
 type Props = { note: Note; onUpdate: (patch: NoteInput) => void; onDelete: () => void };
 
@@ -13,7 +13,7 @@ export default function NoteCard({ note, onUpdate, onDelete }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   const startEdit = () =>
-    setDraft({ title: note.title, content: note.content, items: note.items, labels: note.labels, color: note.color, pinned: note.pinned, isList: note.items.length > 0 });
+    setDraft({ title: note.title, content: note.content, items: note.items, labels: note.labels, reminder: note.reminder, color: note.color, pinned: note.pinned, isList: note.items.length > 0 });
 
   const commit = () => {
     if (!draft) return;
@@ -47,6 +47,11 @@ export default function NoteCard({ note, onUpdate, onDelete }: Props) {
             <Checklist items={note.items} editable={false} onChange={(items) => onUpdate({ items })} />
           ) : (
             <div className="text-sm whitespace-pre-wrap break-words">{note.content}</div>
+          )}
+          {note.reminder && (
+            <div className="mt-2">
+              <span className={`${chip} ${isOverdue(note.reminder) ? "text-red-700 dark:text-red-300 bg-red-500/20" : ""}`}>⏰ {fmtReminder(note.reminder)}</span>
+            </div>
           )}
           {note.labels.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

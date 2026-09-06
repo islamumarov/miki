@@ -3,15 +3,16 @@ import { useState } from "react";
 import { COLORS, type Color, type Item, type NoteInput } from "@/lib/types";
 import Checklist from "./Checklist";
 
-export type Draft = { title: string; content: string; items: Item[]; labels: string[]; color: Color; pinned: boolean; isList: boolean };
+export type Draft = { title: string; content: string; items: Item[]; labels: string[]; reminder: string | null; color: Color; pinned: boolean; isList: boolean };
 
-export const emptyDraft = (): Draft => ({ title: "", content: "", items: [], labels: [], color: "default", pinned: false, isList: false });
+export const emptyDraft = (): Draft => ({ title: "", content: "", items: [], labels: [], reminder: null, color: "default", pinned: false, isList: false });
 
 export const toInput = (d: Draft): NoteInput => ({
   title: d.title.trim(),
   content: d.isList ? "" : d.content.trim(),
   items: d.isList ? d.items.filter((i) => i.text.trim()) : [],
   labels: d.labels,
+  reminder: d.reminder,
   color: d.color,
   pinned: d.pinned,
 });
@@ -75,6 +76,7 @@ export function DraftFields({ draft, onChange, autoFocusBody }: { draft: Draft; 
         />
       )}
       <LabelEditor labels={draft.labels} onChange={(labels) => set({ labels })} />
+      <ReminderInput value={draft.reminder} onChange={(reminder) => set({ reminder })} />
     </>
   );
 }
@@ -122,6 +124,33 @@ export function LabelEditor({ labels, onChange }: { labels: string[]; onChange: 
         placeholder="Add label"
         className="bg-transparent outline-none text-xs min-w-20 flex-1"
       />
+    </div>
+  );
+}
+
+// datetime-local wants local "YYYY-MM-DDTHH:mm"; we store ISO (UTC).
+const toLocalInput = (iso: string) => {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+export const fmtReminder = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+export const isOverdue = (iso: string) => new Date(iso).getTime() < Date.now();
+
+export function ReminderInput({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  return (
+    <div className="mt-2 flex items-center gap-1 text-xs">
+      <span title="Reminder">⏰</span>
+      <input
+        type="datetime-local"
+        value={value ? toLocalInput(value) : ""}
+        onChange={(e) => {
+          if (e.target.value && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
+          onChange(e.target.value ? new Date(e.target.value).toISOString() : null);
+        }}
+        className="bg-transparent outline-none"
+      />
+      {value && <button type="button" onClick={() => onChange(null)} className="px-1 hover:text-red-600" aria-label="Clear reminder">×</button>}
     </div>
   );
 }

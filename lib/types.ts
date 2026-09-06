@@ -19,6 +19,7 @@ export type Note = {
   content: string;
   items: Item[];
   labels: string[];
+  reminder: string | null; // ISO datetime
   color: Color;
   pinned: boolean;
   archived: boolean;

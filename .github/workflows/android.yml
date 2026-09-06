@@ -2,7 +2,10 @@ name: android
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -16,7 +19,13 @@ jobs:
       - run: npm ci
       - run: npm run build:android
       - run: chmod +x android/gradlew && cd android && ./gradlew assembleDebug
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk keep-${GITHUB_REF_NAME}.apk
       - uses: actions/upload-artifact@v4
         with:
           name: keep-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: keep-*.apk
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: keep-*.apk
+          generate_release_notes: true

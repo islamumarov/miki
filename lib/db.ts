@@ -14,6 +14,7 @@ export function openDb(file: string): DatabaseSync {
     content TEXT NOT NULL DEFAULT '',
     items TEXT NOT NULL DEFAULT '[]',
     labels TEXT NOT NULL DEFAULT '[]',
+    reminder TEXT,
     color TEXT NOT NULL DEFAULT 'default',
     pinned INTEGER NOT NULL DEFAULT 0,
     archived INTEGER NOT NULL DEFAULT 0,
@@ -23,6 +24,7 @@ export function openDb(file: string): DatabaseSync {
   // Migration for DBs created before labels existed.
   const cols = (db.prepare("PRAGMA table_info(notes)").all() as { name: string }[]).map((c) => c.name);
   if (!cols.includes("labels")) db.exec("ALTER TABLE notes ADD COLUMN labels TEXT NOT NULL DEFAULT '[]'");
+  if (!cols.includes("reminder")) db.exec("ALTER TABLE notes ADD COLUMN reminder TEXT");
   return db;
 }
 
@@ -55,6 +57,11 @@ export function parseNoteInput(body: unknown): NoteInput {
     if (!Array.isArray(b.labels) || !b.labels.every((l) => typeof l === "string")) throw new Error("labels");
     out.labels = [...new Set((b.labels as string[]).map((l) => l.trim()).filter(Boolean))];
   }
+  if ("reminder" in b) {
+    if (b.reminder === null) out.reminder = null;
+    else if (typeof b.reminder === "string" && !Number.isNaN(Date.parse(b.reminder))) out.reminder = new Date(b.reminder).toISOString();
+    else throw new Error("reminder");
+  }
   return out;
 }
 
@@ -77,14 +84,15 @@ export function createNote(db: DatabaseSync, input: NoteInput): Note {
   const now = new Date().toISOString();
   const r = db
     .prepare(
-      `INSERT INTO notes (title, content, items, labels, color, pinned, archived, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO notes (title, content, items, labels, reminder, color, pinned, archived, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       input.title ?? "",
       input.content ?? "",
       JSON.stringify(input.items ?? []),
       JSON.stringify(input.labels ?? []),
+      input.reminder ?? null,
       input.color ?? "default",
       input.pinned ? 1 : 0,
       input.archived ? 1 : 0,
@@ -96,10 +104,10 @@ export function createNote(db: DatabaseSync, input: NoteInput): Note {
 
 export function updateNote(db: DatabaseSync, id: number, input: NoteInput): Note | null {
   const sets: string[] = [];
-  const vals: (string | number)[] = [];
+  const vals: (string | number | null)[] = [];
   for (const [k, v] of Object.entries(input)) {
     sets.push(`${k} = ?`);
-    vals.push(k === "items" || k === "labels" ? JSON.stringify(v) : typeof v === "boolean" ? (v ? 1 : 0) : (v as string));
+    vals.push(k === "items" || k === "labels" ? JSON.stringify(v) : typeof v === "boolean" ? (v ? 1 : 0) : (v as string | null));
   }
   sets.push("updated_at = ?");
   vals.push(new Date().toISOString());

@@ -38,3 +38,11 @@ test("labels", () => {
   assert.deepEqual(updateNote(db, n.id, { labels: [] })!.labels, []);
   assert.throws(() => parseNoteInput({ labels: [1] }));
 });
+
+test("reminders", () => {
+  const n = createNote(db, parseNoteInput({ title: "r", reminder: "2030-01-02T03:04" }));
+  assert.equal(n.reminder, new Date("2030-01-02T03:04").toISOString());
+  assert.equal(updateNote(db, n.id, { reminder: null })!.reminder, null);
+  assert.throws(() => parseNoteInput({ reminder: "soon" }));
+  assert.equal(createNote(db, {}).reminder, null);
+});

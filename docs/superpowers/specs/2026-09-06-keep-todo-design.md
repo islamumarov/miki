@@ -19,6 +19,7 @@ One table, `notes`:
 | content    | TEXT    | free text; empty for checklists        |
 | items      | TEXT    | JSON `[{text, done}]`; `[]` for notes  |
 | labels     | TEXT    | JSON `string[]`, trimmed + deduped     |
+| reminder   | TEXT    | ISO datetime or NULL                   |
 | color      | TEXT    | Keep palette key, default `default`    |
 | pinned     | INTEGER | 0/1                                    |
 | archived   | INTEGER | 0/1                                    |
@@ -46,4 +47,4 @@ Validation at the boundary: title/content strings, items array of `{text: string
 One test file for the DB layer (`lib/db.test.ts`) run with `node --test`: create, list ordering, update, delete, validation rejects bad items.
 
 ## Out of scope
-Auth, reminders, images, drag reorder, collaboration.
+Auth, images, drag reorder, collaboration.
