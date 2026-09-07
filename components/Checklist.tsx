@@ -17,7 +17,7 @@ export default function Checklist({ items, onChange, editable }: Props) {
             checked={it.done}
             onChange={(e) => set(i, { done: e.target.checked })}
             onClick={(e) => e.stopPropagation()}
-            className="accent-gray-600"
+            className="accent-gray-600 size-4 shrink-0"
           />
           {editable ? (
             <input
@@ -29,19 +29,19 @@ export default function Checklist({ items, onChange, editable }: Props) {
                 if (e.key === "Enter") { e.preventDefault(); add(); }
                 if (e.key === "Backspace" && it.text === "") { e.preventDefault(); remove(i); }
               }}
-              className={`flex-1 bg-transparent outline-none text-sm ${it.done ? "line-through text-gray-400 dark:text-gray-500" : ""}`}
+              className={`flex-1 min-w-0 bg-transparent outline-none text-sm ${it.done ? "line-through text-gray-400 dark:text-gray-500" : ""}`}
             />
           ) : (
-            <span className={`flex-1 text-sm ${it.done ? "line-through text-gray-400 dark:text-gray-500" : ""}`}>{it.text}</span>
+            <span className={`flex-1 min-w-0 break-words text-sm ${it.done ? "line-through text-gray-400 dark:text-gray-500" : ""}`}>{it.text}</span>
           )}
           {editable && (
-            <button type="button" onClick={() => remove(i)} className="opacity-0 group-hover/item:opacity-100 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-1" aria-label="Remove item">×</button>
+            <button type="button" onClick={() => remove(i)} className="opacity-0 group-hover/item:opacity-100 focus:opacity-100 pointer-coarse:opacity-100 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 -my-1" aria-label="Remove item">×</button>
           )}
         </li>
       ))}
       {editable && (
         <li>
-          <button type="button" onClick={add} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 pl-6">+ List item</button>
+          <button type="button" onClick={add} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 pl-6 py-1">+ List item</button>
         </li>
       )}
     </ul>

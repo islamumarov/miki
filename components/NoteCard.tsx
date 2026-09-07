@@ -2,11 +2,13 @@
 import { useRef, useState } from "react";
 import { COLORS, type Note, type NoteInput } from "@/lib/types";
 import Checklist from "./Checklist";
-import { ColorPicker, DraftFields, ListToggle, PinButton, chip, fmtReminder, isBlank, isOverdue, toInput, type Draft } from "./NoteEditor";
+import { ColorPicker, DraftFields, ListToggle, PinButton, chip, fmtReminder, isBlank, isOverdue, toInput, useOutside, type Draft } from "./NoteEditor";
 
 type Props = { note: Note; onUpdate: (patch: NoteInput) => void; onDelete: () => void };
 
-const iconBtn = "p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 text-base leading-none";
+const iconBtn = "inline-flex items-center justify-center size-9 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 text-base leading-none";
+// Hover-revealed on pointer devices; always visible on touch screens (there is no hover) and while editing.
+const revealOnHover = "opacity-0 group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100";
 
 export default function NoteCard({ note, onUpdate, onDelete }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -22,26 +24,29 @@ export default function NoteCard({ note, onUpdate, onDelete }: Props) {
     setDraft(null);
   };
 
+  // Keyboard: commit when focus leaves the card. Pointer/touch: commit on tap outside (see useOutside).
   const onBlur = (e: React.FocusEvent) => {
-    if (draft && !ref.current?.contains(e.relatedTarget as Node)) commit();
+    if (draft && e.relatedTarget && !ref.current?.contains(e.relatedTarget as Node)) commit();
   };
+  useOutside(ref, !!draft, commit);
 
   return (
     <div
       ref={ref}
       tabIndex={-1}
       onBlur={onBlur}
+      data-editing={draft ? "" : undefined}
       style={{ background: COLORS[draft?.color ?? note.color] }}
-      className={`break-inside-avoid mb-4 rounded-lg border border-gray-300 dark:border-gray-600 p-3 shadow-sm hover:shadow-md group relative ${draft ? "ring-2 ring-gray-400 dark:ring-gray-500" : "cursor-default"}`}
+      className={`break-inside-avoid mb-3 sm:mb-4 rounded-lg border border-gray-300 dark:border-gray-600 p-3 shadow-sm hover:shadow-md group relative ${draft ? "ring-2 ring-gray-400 dark:ring-gray-500" : "cursor-default"}`}
     >
-      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+      <div className={`absolute top-1 right-1 ${draft ? "" : revealOnHover}`}>
         <PinButton pinned={draft?.pinned ?? note.pinned} onToggle={() => (draft ? setDraft({ ...draft, pinned: !draft.pinned }) : onUpdate({ pinned: !note.pinned }))} />
       </div>
 
       {draft ? (
         <DraftFields draft={draft} onChange={setDraft} />
       ) : (
-        <div onClick={startEdit} className="min-h-6 pr-8">
+        <div onClick={startEdit} className="min-h-6 pr-9">
           {note.title && <div className="font-medium text-base mb-2 break-words">{note.title}</div>}
           {note.items.length ? (
             <Checklist items={note.items} editable={false} onChange={(items) => onUpdate({ items })} />
@@ -61,14 +66,14 @@ export default function NoteCard({ note, onUpdate, onDelete }: Props) {
         </div>
       )}
 
-      <div className="mt-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+      <div className={`mt-2 flex flex-wrap items-center gap-1 ${draft ? "" : revealOnHover}`}>
         <ColorPicker value={draft?.color ?? note.color} onChange={(color) => (draft ? setDraft({ ...draft, color }) : onUpdate({ color }))} />
         {draft && <ListToggle draft={draft} onChange={setDraft} />}
-        <button type="button" className={iconBtn} title={note.archived ? "Unarchive" : "Archive"} onClick={() => onUpdate({ archived: !note.archived })}>
+        <button type="button" className={iconBtn} title={note.archived ? "Unarchive" : "Archive"} aria-label={note.archived ? "Unarchive" : "Archive"} onClick={() => onUpdate({ archived: !note.archived })}>
           {note.archived ? "📤" : "📥"}
         </button>
-        <button type="button" className={iconBtn} title="Delete" onClick={onDelete}>🗑️</button>
-        {draft && <button type="button" onClick={commit} className="ml-auto text-sm px-3 py-1 rounded hover:bg-black/10 dark:hover:bg-white/10">Close</button>}
+        <button type="button" className={iconBtn} title="Delete" aria-label="Delete" onClick={onDelete}>🗑️</button>
+        {draft && <button type="button" onClick={commit} className="ml-auto text-sm px-3 py-2 rounded hover:bg-black/10 dark:hover:bg-white/10">Close</button>}
       </div>
     </div>
   );
