@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { COLORS, type Color, type Item, type NoteInput } from "@/lib/types";
 import Checklist from "./Checklist";
 
@@ -19,15 +19,32 @@ export const toInput = (d: Draft): NoteInput => ({
 
 export const isBlank = (d: Draft) => !toInput(d).title && !toInput(d).content && !toInput(d).items!.length;
 
-const iconBtn = "p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 text-base leading-none";
+/** Icon buttons are fixed-size so they stay comfortable to tap on touch screens. */
+const iconBtn = "inline-flex items-center justify-center size-9 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 text-base leading-none";
+
+/**
+ * Calls `onOutside` on a pointer-down outside `ref` while `active`.
+ * Blur-based detection alone is unreliable on touch devices (tapping a button doesn't move focus on iOS), so
+ * editors use this to commit and popovers use it to close.
+ */
+export function useOutside(ref: RefObject<HTMLElement | null>, active: boolean, onOutside: () => void) {
+  useEffect(() => {
+    if (!active) return;
+    const onDown = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) onOutside(); };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [ref, active, onOutside]);
+}
 
 export function ColorPicker({ value, onChange }: { value: Color; onChange: (c: Color) => void }) {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  useOutside(ref, open, () => setOpen(false));
   return (
-    <span className="relative">
-      <button type="button" className={iconBtn} title="Background color" onClick={() => setOpen(!open)}>🎨</button>
+    <span ref={ref} className="relative">
+      <button type="button" className={iconBtn} title="Background color" aria-label="Background color" aria-expanded={open} onClick={() => setOpen(!open)}>🎨</button>
       {open && (
-        <div className="absolute z-10 left-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 flex gap-1 flex-wrap w-44" onMouseLeave={() => setOpen(false)}>
+        <div className="absolute z-10 left-0 top-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 flex gap-1 flex-wrap w-44 max-w-[calc(100vw-2rem)]" onMouseLeave={() => setOpen(false)}>
           {(Object.keys(COLORS) as Color[]).map((c) => (
             <button
               key={c}
@@ -35,7 +52,7 @@ export function ColorPicker({ value, onChange }: { value: Color; onChange: (c: C
               title={c}
               onClick={() => { onChange(c); setOpen(false); }}
               style={{ background: COLORS[c] }}
-              className={`w-7 h-7 rounded-full border-2 ${c === value ? "border-gray-800 dark:border-gray-100" : "border-gray-300 dark:border-gray-600"}`}
+              className={`size-8 rounded-full border-2 ${c === value ? "border-gray-800 dark:border-gray-100" : "border-gray-300 dark:border-gray-600"}`}
             />
           ))}
         </div>
@@ -111,7 +128,7 @@ export function LabelEditor({ labels, onChange }: { labels: string[]; onChange: 
       {labels.map((l) => (
         <span key={l} className={chip}>
           {l}
-          <button type="button" onClick={() => onChange(labels.filter((x) => x !== l))} className="hover:text-red-600" aria-label={`Remove label ${l}`}>×</button>
+          <button type="button" onClick={() => onChange(labels.filter((x) => x !== l))} className="px-1 hover:text-red-600" aria-label={`Remove label ${l}`}>×</button>
         </span>
       ))}
       <input
@@ -139,18 +156,19 @@ export const isOverdue = (iso: string) => new Date(iso).getTime() < Date.now();
 
 export function ReminderInput({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   return (
-    <div className="mt-2 flex items-center gap-1 text-xs">
-      <span title="Reminder">⏰</span>
+    <div className="mt-2 flex flex-wrap items-center gap-1 text-xs">
+      <span title="Reminder" aria-hidden>⏰</span>
       <input
         type="datetime-local"
+        aria-label="Reminder"
         value={value ? toLocalInput(value) : ""}
         onChange={(e) => {
           if (e.target.value && typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission();
           onChange(e.target.value ? new Date(e.target.value).toISOString() : null);
         }}
-        className="bg-transparent outline-none"
+        className="bg-transparent outline-none min-w-0 max-w-full"
       />
-      {value && <button type="button" onClick={() => onChange(null)} className="px-1 hover:text-red-600" aria-label="Clear reminder">×</button>}
+      {value && <button type="button" onClick={() => onChange(null)} className="px-2 py-1 hover:text-red-600" aria-label="Clear reminder">×</button>}
     </div>
   );
 }
